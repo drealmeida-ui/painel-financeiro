@@ -164,14 +164,21 @@
     <script type="module">
         // Importa os módulos necessários do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Variáveis globais do Firebase, fornecidas pelo ambiente
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+        // IMPORTANTE: Para que este painel funcione no GitHub Pages, você precisa criar seu
+        // próprio projeto no Firebase e colar a configuração abaixo.
+        // Siga as instruções no final do documento para fazer isso.
+        const firebaseConfig = {
+            apiKey: "COLE_SUA_API_KEY_AQUI",
+            authDomain: "COLE_SEU_AUTH_DOMAIN_AQUI",
+            projectId: "COLE_SEU_PROJECT_ID_AQUI",
+            storageBucket: "COLE_SEU_STORAGE_BUCKET_AQUI",
+            messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID_AQUI",
+            appId: "COLE_SEU_APP_ID_AQUI"
+        };
+        
         let db, auth, userId;
         let isAuthReady = false;
 
@@ -202,16 +209,13 @@
          */
         async function initializeFirebase() {
             try {
+                // Tenta inicializar o app com a configuração fornecida
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
                 // Autenticação com o token fornecido ou anonimamente
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
 
                 // O listener onAuthStateChanged garante que só continuemos
                 // após a autenticação completa e a obtenção do UID
@@ -235,7 +239,7 @@
 
             } catch (error) {
                 console.error("Erro ao inicializar o Firebase:", error);
-                userInfoDiv.textContent = 'Erro ao carregar os dados. Tente novamente.';
+                userInfoDiv.textContent = 'Erro ao carregar os dados. Verifique sua configuração do Firebase.';
                 gerarCamposMensais();
                 calcularBalancoAnual();
             }
@@ -286,7 +290,7 @@
             });
 
             // Cria uma referência para o documento no Firestore
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/financialDashboard/data`);
+            const docRef = doc(db, `users/${userId}/financialDashboard/data`);
             
             // Salva os dados no documento com o merge: true
             setDoc(docRef, dadosPainel)
@@ -305,7 +309,7 @@
         async function loadDataFromFirestore() {
             if (!isAuthReady) return;
 
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/financialDashboard/data`);
+            const docRef = doc(db, `users/${userId}/financialDashboard/data`);
             
             // onSnapshot escuta por alterações em tempo real no documento
             onSnapshot(docRef, (docSnap) => {
