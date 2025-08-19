@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Financeiro Condominial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+        th, td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: center;
+        }
+        thead th {
+            font-weight: 600;
+        }
+        /* Estilos específicos para a versão impressa */
+        @media print {
+            .print-hidden, .botoes-acao {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                border: 1px solid #000;
+                padding: 8px;
+            }
+            thead {
+                background-color: #ddd;
+                color: #000;
+            }
+        }
+        /* Conteúdo que só aparece na impressão */
+        .print-only {
+            display: none;
+        }
+        .expand-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .monthly-details-section {
+            display: none;
+        }
+        .monthly-header {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6 print-hidden">Painel Financeiro Condominial</h1>
+        <div id="user-info" class="text-sm text-gray-500 text-center mb-4 print-hidden">
+            Carregando...
+        </div>
+        
+        <!-- Conteúdo para impressão -->
+        <div class="print-only mb-6" id="dashboard-conteudo-impressao">
+            <!-- O conteúdo detalhado será inserido aqui pelo JavaScript -->
+        </div>
+
+        <!-- Controles de entrada de dados -->
+        <div class="print-hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Configurações de Receita</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6" id="revenue-settings-container">
+                <div>
+                    <label for="taxa-apartamentos" class="block text-gray-700 font-semibold mb-2">
+                        Taxa (Apartamentos)
+                    </label>
+                    <input type="number" id="taxa-apartamentos" value="629.00" min="0" step="0.01"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                </div>
+                <div>
+                    <label for="taxa-kitnets" class="block text-gray-700 font-semibold mb-2">
+                        Taxa (Kitnets)
+                    </label>
+                    <input type="number" id="taxa-kitnets" value="524.51" min="0" step="0.01"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                </div>
+                <div>
+                    <label for="taxa-salas" class="block text-gray-700 font-semibold mb-2">
+                        Taxa (Salas)
+                    </label>
+                    <input type="number" id="taxa-salas" value="268.31" min="0" step="0.01"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                </div>
+                <div>
+                    <label for="percentual-desconto" class="block text-gray-700 font-semibold mb-2">
+                        Desconto Pontualidade (%)
+                    </label>
+                    <input type="number" id="percentual-desconto" value="5" min="0" max="100" step="0.1"
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                </div>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-gray-800 mt-6 mb-4">Dados Financeiros Mensais</h2>
+            <div id="monthly-inputs-container">
+                <!-- Seções para cada mês serão geradas aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Tabela de resumo anual -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 print-hidden">Resumo Anual</h2>
+        <div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6 print-hidden">
+            <h3 class="font-semibold text-lg text-gray-700 mb-2">Receita Total Anual (Com Desconto)</h3>
+            <p class="text-xl font-bold text-green-600 mb-4" id="receita-total-anual"></p>
+            <h3 class="font-semibold text-lg text-gray-700 mb-2">Despesa Total Anual</h3>
+            <p class="text-xl font-bold text-red-600 mb-4" id="despesa-total-anual"></p>
+            <h3 class="font-semibold text-lg text-gray-700 mb-2">Balanço Anual</h3>
+            <p class="text-xl font-bold" id="balanco-total-anual"></p>
+        </div>
+
+        <!-- Tabela de detalhes mensais -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 print-hidden expand-toggle" id="expandir-tabela">Detalhes Mensais ▼</h2>
+        <div id="tabela-mensal" class="overflow-x-auto mb-8 print-hidden" style="display: none;">
+            <table class="bg-white rounded-xl overflow-hidden shadow-sm">
+                <thead>
+                    <tr class="bg-gray-800 text-white text-left text-sm leading-normal">
+                        <th class="py-3 px-6 text-center">Mês</th>
+                        <th class="py-3 px-6 text-center">Receita Total</th>
+                        <th class="py-3 px-6 text-center">Despesa Total</th>
+                        <th class="py-3 px-6 text-center">Balanço Mensal</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-tabela-anual-body" class="text-gray-600 text-sm font-light">
+                    <!-- Linhas dos meses serão inseridas aqui pelo JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Botão de ação para impressão -->
+        <div class="flex justify-center mt-8 print-hidden botoes-acao">
+            <button id="dashboard-botao-imprimir" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 shadow-md">
+                Gerar Versão para Impressão
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importa os módulos necessários do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais do Firebase, fornecidas pelo ambiente
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+        let isAuthReady = false;
+
+        // Array de meses para uso no código
+        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        // Seleção de elementos HTML
+        const taxaApartamentosInput = document.getElementById('taxa-apartamentos');
+        const taxaKitnetsInput = document.getElementById('taxa-kitnets');
+        const taxaSalasInput = document.getElementById('taxa-salas');
+        const percentualDescontoInput = document.getElementById('percentual-desconto');
+        const monthlyInputsContainer = document.getElementById('monthly-inputs-container');
+        const revenueSettingsContainer = document.getElementById('revenue-settings-container');
+
+        const receitaAnualSpan = document.getElementById('receita-total-anual');
+        const despesaAnualSpan = document.getElementById('despesa-total-anual');
+        const balancoAnualSpan = document.getElementById('balanco-total-anual');
+        const tabelaAnualBody = document.getElementById('dashboard-tabela-anual-body');
+        const botaoImprimir = document.getElementById('dashboard-botao-imprimir');
+        const conteudoImpressaoDiv = document.getElementById('dashboard-conteudo-impressao');
+        const expandirTabela = document.getElementById('expandir-tabela');
+        const tabelaMensalDiv = document.getElementById('tabela-mensal');
+        const userInfoDiv = document.getElementById('user-info');
+
+        /**
+         * Inicializa o Firebase e o sistema de autenticação.
+         * Aguarda a autenticação antes de iniciar as operações no Firestore.
+         */
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Autenticação com o token fornecido ou anonimamente
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // O listener onAuthStateChanged garante que só continuemos
+                // após a autenticação completa e a obtenção do UID
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userInfoDiv.textContent = `Usuário ID: ${userId}`;
+                        isAuthReady = true;
+                        // Inicia o carregamento e o listener do Firestore
+                        loadDataFromFirestore();
+                    } else {
+                        // Se o usuário não está autenticado, geramos um ID temporário
+                        userId = crypto.randomUUID();
+                        userInfoDiv.textContent = `Usuário temporário: ${userId}`;
+                        isAuthReady = true;
+                        // Como não há dados para carregar, apenas geramos os campos e calculamos
+                        gerarCamposMensais();
+                        calcularBalancoAnual();
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro ao inicializar o Firebase:", error);
+                userInfoDiv.textContent = 'Erro ao carregar os dados. Tente novamente.';
+                gerarCamposMensais();
+                calcularBalancoAnual();
+            }
+        }
+        
+        /**
+         * Salva todos os dados atuais do painel no Firestore.
+         * Esta função é acionada por cada alteração nos campos de input.
+         */
+        function saveDataToFirestore() {
+            if (!isAuthReady) {
+                console.warn("Autenticação não concluída. Dados não salvos.");
+                return;
+            }
+
+            // Coleta todos os dados do painel para salvar
+            const dadosPainel = {
+                receitaConfig: {
+                    taxaApartamentos: parseFloat(taxaApartamentosInput.value) || 0,
+                    taxaKitnets: parseFloat(taxaKitnetsInput.value) || 0,
+                    taxaSalas: parseFloat(taxaSalasInput.value) || 0,
+                    percentualDesconto: parseFloat(percentualDescontoInput.value) || 0,
+                },
+                dadosMensais: []
+            };
+
+            meses.forEach((mes, index) => {
+                const mesData = {
+                    mes: mes,
+                    unidadesApartamentos: parseInt(document.getElementById(`unidades-apartamentos-${index}`).value) || 0,
+                    unidadesKitnets: parseInt(document.getElementById(`unidades-kitnets-${index}`).value) || 0,
+                    unidadesSalas: parseInt(document.getElementById(`unidades-salas-${index}`).value) || 0,
+                    inadimplentesApartamentos: parseInt(document.getElementById(`inadimplentes-apartamentos-${index}`).value) || 0,
+                    inadimplentesKitnets: parseInt(document.getElementById(`inadimplentes-kitnets-${index}`).value) || 0,
+                    inadimplentesSalas: parseInt(document.getElementById(`inadimplentes-salas-${index}`).value) || 0,
+                    receitaExtra: parseFloat(document.getElementById(`receita-extra-${index}`).value) || 0,
+                    despesas: []
+                };
+
+                const camposDespesa = document.querySelectorAll(`#despesas-container-${index} > div`);
+                camposDespesa.forEach(campo => {
+                    const descricao = campo.querySelector('.despesa-descricao').value;
+                    const valor = parseFloat(campo.querySelector('.despesa-valor').value) || 0;
+                    mesData.despesas.push({ descricao, valor });
+                });
+
+                dadosPainel.dadosMensais.push(mesData);
+            });
+
+            // Cria uma referência para o documento no Firestore
+            const docRef = doc(db, `artifacts/${appId}/users/${userId}/financialDashboard/data`);
+            
+            // Salva os dados no documento com o merge: true
+            setDoc(docRef, dadosPainel)
+                .then(() => {
+                    console.log("Dados salvos com sucesso!");
+                })
+                .catch(error => {
+                    console.error("Erro ao salvar os dados:", error);
+                });
+        }
+
+        /**
+         * Carrega os dados do Firestore e preenche os campos do painel.
+         * Usa onSnapshot para escutar em tempo real.
+         */
+        async function loadDataFromFirestore() {
+            if (!isAuthReady) return;
+
+            const docRef = doc(db, `artifacts/${appId}/users/${userId}/financialDashboard/data`);
+            
+            // onSnapshot escuta por alterações em tempo real no documento
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Preenche os campos de configuração de receita
+                    if (data.receitaConfig) {
+                        taxaApartamentosInput.value = data.receitaConfig.taxaApartamentos.toFixed(2);
+                        taxaKitnetsInput.value = data.receitaConfig.taxaKitnets.toFixed(2);
+                        taxaSalasInput.value = data.receitaConfig.taxaSalas.toFixed(2);
+                        percentualDescontoInput.value = data.receitaConfig.percentualDesconto;
+                    }
+
+                    // Gera os campos mensais e preenche com os dados salvos
+                    gerarCamposMensais(data.dadosMensais);
+                    
+                } else {
+                    console.log("Nenhum dado encontrado. Gerando painel padrão.");
+                    gerarCamposMensais();
+                }
+                calcularBalancoAnual();
+            }, (error) => {
+                console.error("Erro ao carregar dados do Firestore:", error);
+                // Em caso de erro, gera o painel padrão para o usuário continuar
+                gerarCamposMensais();
+                calcularBalancoAnual();
+            });
+        }
+
+        /**
+         * Formata um número para a moeda brasileira (BRL).
+         * @param {number} valor - O valor a ser formatado.
+         * @returns {string} O valor formatado como moeda.
+         */
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor);
+        }
+
+        /**
+         * Calcula o total de despesas para um mês específico.
+         * @param {number} mesIndex - O índice do mês (0-11).
+         * @returns {number} O total de despesas para o mês.
+         */
+        function calcularTotalDespesaMensal(mesIndex) {
+            let total = 0;
+            const camposValor = document.querySelectorAll(`#despesas-container-${mesIndex} .despesa-valor`);
+            camposValor.forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            return total;
+        }
+
+        /**
+         * Adiciona um novo campo de despesa para um mês específico.
+         * @param {number} mesIndex - O índice do mês.
+         * @param {object} [despesa={ descricao: '', valor: 0.00 }] - Objeto com os dados da despesa.
+         */
+        function adicionarCampoDespesa(mesIndex, despesa = { descricao: '', valor: 0.00 }) {
+            const despesasContainer = document.getElementById(`despesas-container-${mesIndex}`);
+            const novoCampo = document.createElement('div');
+            novoCampo.className = 'flex items-center space-x-2 mb-2';
+            novoCampo.innerHTML = `
+                <input type="text" placeholder="Descrição da despesa" value="${despesa.descricao}"
+                       class="flex-grow p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-900 transition duration-200 despesa-descricao">
+                <input type="number" value="${despesa.valor}" min="0" step="0.01"
+                       class="w-32 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-900 transition duration-200 despesa-valor">
+                <button type="button" class="remover-despesa text-gray-500 hover:text-red-600 font-bold p-1 transition duration-200">
+                    &times;
+                </button>
+            `;
+            despesasContainer.appendChild(novoCampo);
+            
+            // Adiciona um listener para o botão de remoção, garantindo que a remoção e o recálculo funcionem.
+            const removerBotao = novoCampo.querySelector('.remover-despesa');
+            removerBotao.addEventListener('click', () => {
+                novoCampo.remove();
+                calcularBalancoAnual();
+                saveDataToFirestore();
+            });
+            
+            // Adiciona um listener de input diretamente aos novos campos de valor e descrição.
+            const novoInputValor = novoCampo.querySelector('.despesa-valor');
+            const novoInputDescricao = novoCampo.querySelector('.despesa-descricao');
+            novoInputValor.addEventListener('input', () => {
+                calcularBalancoAnual();
+                saveDataToFirestore();
+            });
+            novoInputDescricao.addEventListener('input', () => {
+                saveDataToFirestore();
+            });
+        }
+        
+        /**
+         * Gera e insere os campos de entrada mensais de receita e despesa no DOM.
+         * @param {array} [dadosSalvos=null] - Array com os dados de meses salvos no Firestore.
+         */
+        function gerarCamposMensais(dadosSalvos = null) {
+            monthlyInputsContainer.innerHTML = '';
+            meses.forEach((mes, index) => {
+                const section = document.createElement('div');
+                section.className = 'bg-gray-50 p-4 rounded-lg shadow-inner mb-4';
+                const mesData = dadosSalvos && dadosSalvos[index] ? dadosSalvos[index] : {};
+
+                section.innerHTML = `
+                    <div class="monthly-header flex justify-between items-center text-lg font-bold text-gray-800 expand-toggle" data-target="mes-${index}-details">
+                        <span>${mes}</span>
+                        <span>▼</span>
+                    </div>
+                    <div id="mes-${index}-details" class="monthly-details-section pt-4">
+                        <h4 class="font-semibold text-gray-700 mb-2">Receita</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label for="unidades-apartamentos-${index}" class="block text-gray-700 font-semibold mb-2">
+                                    Apartamentos
+                                </label>
+                                <input type="number" id="unidades-apartamentos-${index}" value="${mesData.unidadesApartamentos || 50}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                            <div>
+                                <label for="unidades-kitnets-${index}" class="block text-gray-700 font-semibold mb-2">
+                                    Kitnets
+                                </label>
+                                <input type="number" id="unidades-kitnets-${index}" value="${mesData.unidadesKitnets || 20}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                            <div>
+                                <label for="unidades-salas-${index}" class="block text-gray-700 font-semibold mb-2">
+                                    Salas
+                                </label>
+                                <input type="number" id="unidades-salas-${index}" value="${mesData.unidadesSalas || 10}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                            <div>
+                                <label for="receita-extra-${index}" class="block text-gray-700 font-semibold mb-2">
+                                    Receita Extra (R$)
+                                </label>
+                                <input type="number" id="receita-extra-${index}" value="${mesData.receitaExtra || 0.00}" min="0" step="0.01"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                        </div>
+                        <h4 class="font-semibold text-gray-700 mt-4 mb-2">Inadimplentes</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label for="inadimplentes-apartamentos-${index}" class="block text-gray-700 mb-2">
+                                    Apartamentos
+                                </label>
+                                <input type="number" id="inadimplentes-apartamentos-${index}" value="${mesData.inadimplentesApartamentos || 0}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                            <div>
+                                <label for="inadimplentes-kitnets-${index}" class="block text-gray-700 mb-2">
+                                    Kitnets
+                                </label>
+                                <input type="number" id="inadimplentes-kitnets-${index}" value="${mesData.inadimplentesKitnets || 0}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                            <div>
+                                <label for="inadimplentes-salas-${index}" class="block text-gray-700 mb-2">
+                                    Salas
+                                </label>
+                                <input type="number" id="inadimplentes-salas-${index}" value="${mesData.inadimplentesSalas || 0}" min="0"
+                                       class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition duration-200">
+                            </div>
+                        </div>
+
+                        <h4 class="font-semibold text-gray-700 mt-4 mb-2">Despesas</h4>
+                        <div id="despesas-container-${index}" class="space-y-2">
+                            <!-- Campos de despesa serão adicionados aqui -->
+                        </div>
+                        <button type="button" class="adicionar-despesa mt-4 bg-blue-800 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                            Adicionar Despesa
+                        </button>
+                    </div>
+                `;
+                monthlyInputsContainer.appendChild(section);
+                
+                // Adiciona os campos de despesa salvos ou um campo padrão
+                if (mesData.despesas && mesData.despesas.length > 0) {
+                    mesData.despesas.forEach(despesa => adicionarCampoDespesa(index, despesa));
+                } else {
+                    adicionarCampoDespesa(index);
+                }
+            });
+
+            // Adiciona listeners de expansão/colapso para cada seção de mês
+            document.querySelectorAll('.monthly-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const targetId = header.getAttribute('data-target');
+                    const targetSection = document.getElementById(targetId);
+                    const isHidden = targetSection.style.display === 'none' || targetSection.style.display === '';
+                    targetSection.style.display = isHidden ? 'block' : 'none';
+                    header.querySelector('span:last-child').textContent = isHidden ? '▲' : '▼';
+                });
+            });
+
+            // Adiciona listeners para os botões "Adicionar Despesa"
+            document.querySelectorAll('.adicionar-despesa').forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    adicionarCampoDespesa(index);
+                    // Salva os dados após adicionar um novo campo
+                    saveDataToFirestore();
+                });
+            });
+        }
+
+        /**
+         * Calcula o balanço anual com base em todos os dados de receita e despesa.
+         * Esta função é a principal e é acionada por todas as alterações de input.
+         */
+        function calcularBalancoAnual() {
+            // Limpa a tabela antes de popular
+            tabelaAnualBody.innerHTML = '';
+            
+            let receitaAnual = 0;
+            let despesaAnual = 0;
+
+            const taxaApartamentos = parseFloat(taxaApartamentosInput.value) || 0;
+            const taxaKitnets = parseFloat(taxaKitnetsInput.value) || 0;
+            const taxaSalas = parseFloat(taxaSalasInput.value) || 0;
+            const percentualDesconto = parseFloat(percentualDescontoInput.value) || 0;
+            const fatorDesconto = 1 - (percentualDesconto / 100);
+
+            // Loop para cada mês
+            for (let mes = 0; mes < 12; mes++) {
+                // Cálculo da receita
+                const unidadesApartamentos = parseInt(document.getElementById(`unidades-apartamentos-${mes}`).value) || 0;
+                const unidadesKitnets = parseInt(document.getElementById(`unidades-kitnets-${mes}`).value) || 0;
+                const unidadesSalas = parseInt(document.getElementById(`unidades-salas-${mes}`).value) || 0;
+                
+                const inadimplentesApartamentos = parseInt(document.getElementById(`inadimplentes-apartamentos-${mes}`).value) || 0;
+                const inadimplentesKitnets = parseInt(document.getElementById(`inadimplentes-kitnets-${mes}`).value) || 0;
+                const inadimplentesSalas = parseInt(document.getElementById(`inadimplentes-salas-${mes}`).value) || 0;
+
+                const receitaExtra = parseFloat(document.getElementById(`receita-extra-${mes}`).value) || 0;
+
+                const receitaMensal = 
+                    ((unidadesApartamentos - inadimplentesApartamentos) * taxaApartamentos * fatorDesconto +
+                    (unidadesKitnets - inadimplentesKitnets) * taxaKitnets * fatorDesconto +
+                    (unidadesSalas - inadimplentesSalas) * taxaSalas * fatorDesconto) + receitaExtra;
+
+                // Cálculo da despesa
+                const despesaMensal = calcularTotalDespesaMensal(mes);
+
+                // Cálculo do balanço mensal
+                const balancoMensal = receitaMensal - despesaMensal;
+
+                // Acumula os totais anuais
+                receitaAnual += receitaMensal;
+                despesaAnual += despesaMensal;
+
+                // Cria a linha para a tabela mensal
+                const newRow = document.createElement('tr');
+                newRow.className = 'border-b border-gray-200 hover:bg-gray-100';
+                const balancoClass = balancoMensal >= 0 ? 'text-green-600' : 'text-red-600';
+                newRow.innerHTML = `
+                    <td class="py-3 px-6 whitespace-nowrap font-medium text-gray-900">${meses[mes]}</td>
+                    <td class="py-3 px-6 font-bold text-blue-600">${formatarMoeda(receitaMensal)}</td>
+                    <td class="py-3 px-6 font-bold text-red-600">${formatarMoeda(despesaMensal)}</td>
+                    <td class="py-3 px-6 font-bold ${balancoClass}">${formatarMoeda(balancoMensal)}</td>
+                `;
+                tabelaAnualBody.appendChild(newRow);
+            }
+
+            const balancoAnual = receitaAnual - despesaAnual;
+            const balancoAnualClass = balancoAnual >= 0 ? 'text-green-600' : 'text-red-600';
+
+            // Atualiza os resumos anuais
+            receitaAnualSpan.textContent = formatarMoeda(receitaAnual);
+            despesaAnualSpan.textContent = formatarMoeda(despesaAnual);
+            balancoAnualSpan.textContent = formatarMoeda(balancoAnual);
+            balancoAnualSpan.className = `text-xl font-bold ${balancoAnualClass}`;
+            
+            // Geração do conteúdo para impressão
+            let textoImpressao = `
+                <h1 class="text-2xl font-bold text-center mb-4">Relatório Financeiro Anual Condominial</h1>
+                <p class="text-base text-gray-700 mt-2">Este relatório apresenta a receita, despesa e o balanço financeiro do condomínio ao longo de 12 meses.</p>
+
+                <h2 class="text-xl font-bold mt-6 mb-2">Resumo Anual</h2>
+                <div class="overflow-x-auto mt-4">
+                    <table class="w-full text-left table-auto">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-2 font-semibold text-center">Tipo</th>
+                                <th class="p-2 font-semibold text-center">Valor Anual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-2 text-center">Receita Total</td>
+                                <td class="p-2 text-center font-bold text-green-600">${formatarMoeda(receitaAnual)}</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 text-center">Despesa Total</td>
+                                <td class="p-2 text-center font-bold text-red-600">${formatarMoeda(despesaAnual)}</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 text-center">Balanço</td>
+                                <td class="p-2 text-center font-bold ${balancoAnualClass}">${formatarMoeda(balancoAnual)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2 class="text-xl font-bold mt-6 mb-2">Detalhes por Mês</h2>
+                <div class="overflow-x-auto mt-4">
+                    <table class="w-full text-left table-auto">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-2 font-semibold text-center">Mês</th>
+                                <th class="p-2 font-semibold text-center">Receita</th>
+                                <th class="p-2 font-semibold text-center">Despesa</th>
+                                <th class="p-2 font-semibold text-center">Balanço</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-tabela-impressao-body">
+                            <!-- Conteúdo do corpo da tabela de impressão -->
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            conteudoImpressaoDiv.innerHTML = textoImpressao;
+            
+            const tabelaImpressaoBody = document.getElementById('dashboard-tabela-impressao-body');
+            // Recria a tabela de detalhes mensais para a impressão
+            tabelaAnualBody.querySelectorAll('tr').forEach(row => {
+                tabelaImpressaoBody.appendChild(row.cloneNode(true));
+            });
+        }
+
+        // Adiciona um único listener de input para as configurações de receita
+        revenueSettingsContainer.addEventListener('input', () => {
+            calcularBalancoAnual();
+            saveDataToFirestore();
+        });
+
+        // Adiciona listener para o botão de imprimir
+        botaoImprimir.addEventListener('click', () => {
+            window.print();
+        });
+
+        // Adiciona funcionalidade para expandir/recolher a tabela mensal
+        expandirTabela.addEventListener('click', () => {
+            const isHidden = tabelaMensalDiv.style.display === 'none';
+            tabelaMensalDiv.style.display = isHidden ? 'block' : 'none';
+            expandirTabela.textContent = isHidden ? 'Detalhes Mensais ▲' : 'Detalhes Mensais ▼';
+        });
+
+        // Inicia o app chamando a inicialização do Firebase no carregamento da página
+        document.addEventListener('DOMContentLoaded', initializeFirebase);
+    </script>
+</body>
+</html>
